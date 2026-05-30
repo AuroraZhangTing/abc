@@ -514,3 +514,43 @@
 - `DELETE /api/projects/{id}`
 - `GET /api/files/{id}`
 - `GET /api/files/{id}?download=1`
+
+## 12. Render 免费上线步骤
+
+当前这套项目适合先做演示版上线，直接用 Render 免费 Web Service 提供的 `onrender.com` 二级域名访问。
+
+### 上线前确认
+
+- 代码仓库已经推送到 GitHub
+- Git 远程地址不再包含 token，当前应使用普通仓库地址
+- 根目录存在 `render.yaml`
+- 启动命令是 `node server.js`
+- Node 版本建议 `24.x`，因为服务端使用了 `node:sqlite`
+
+### Render 部署步骤
+
+1. 打开 Render，使用 GitHub 登录。
+2. 在 Render 创建 `New Web Service`。
+3. 选择你的 GitHub 仓库 `AuroraZhangTing/abc`。
+4. 保持 `Branch` 为 `main`。
+5. Render 会读取根目录的 `render.yaml`，或你手动填写：
+   - `Runtime`: Node
+   - `Build Command`: `node -e "console.log('No build step required')"`
+   - `Start Command`: `node server.js`
+6. 提交并等待首次构建完成。
+7. 部署成功后，Render 会分配一个免费的公网地址，形如 `https://xxx.onrender.com`。
+8. 直接用这个地址访问系统即可。
+
+### 这套免费部署的边界
+
+- 可以免费获得公网访问地址
+- 可以免费把系统挂到网上演示
+- 但 SQLite 数据文件和 `uploads` 目录仍然是本地磁盘，免费 Web Service 重启或重新部署后可能丢失
+- 所以这套方案适合演示、答辩、功能展示，不适合长期生产存档
+
+### 如果你要继续稳定化
+
+下一步建议把以下两项拆出去：
+
+- 数据库从 SQLite 迁到免费 PostgreSQL
+- 文件从本地 `uploads` 迁到对象存储或云端文件服务
