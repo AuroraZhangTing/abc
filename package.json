@@ -1,0 +1,10 @@
+﻿{
+  "name": "industry-academia-project-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "产学研项目管理系统，轻量 Node.js + SQLite 单体版",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

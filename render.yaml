@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: industry-academia-project-system
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: "node -e \"console.log('No build step required')\""
+    startCommand: "node server.js"
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 24.13.0
