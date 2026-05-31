@@ -2,7 +2,7 @@
   "name": "industry-academia-project-system",
   "version": "1.0.0",
   "private": true,
-  "description": "Industry-Academia Project Management System with Node.js + SQLite",
+  "description": "Industry-Academia Project Management System with Node.js + JSON storage",
   "main": "server.js",
   "engines": {
     "node": "22"
