@@ -16,13 +16,13 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const STAGES = [
-  { code: 'project_info', label: 'ÏîÄ¿»ù´¡ĞÅÏ¢' },
-  { code: 'contract_draft', label: 'ºÏÍ¬¶¨¸å' },
-  { code: 'contract_stamp', label: 'ºÏÍ¬¸ÇÕÂ' },
-  { code: 'contract_delivery', label: 'ºÏÍ¬¼ÄËÍÓëÇ©ÊÕ' },
-  { code: 'fund_claim', label: '¾­·ÑÈÏÁì' },
-  { code: 'invoice', label: '·¢Æ±¹ÜÀí' },
-  { code: 'closure', label: 'ÏîÄ¿½áÌâ' }
+  { code: 'project_info', label: 'é¡¹ç›®åŸºç¡€ä¿¡æ¯' },
+  { code: 'contract_draft', label: 'åˆåŒå®šç¨¿' },
+  { code: 'contract_stamp', label: 'åˆåŒç›–ç« ' },
+  { code: 'contract_delivery', label: 'åˆåŒå¯„é€ä¸ç­¾æ”¶' },
+  { code: 'fund_claim', label: 'ç»è´¹è®¤é¢†' },
+  { code: 'invoice', label: 'å‘ç¥¨ç®¡ç†' },
+  { code: 'closure', label: 'é¡¹ç›®ç»“é¢˜' }
 ];
 
 const STAGE_LABELS = Object.fromEntries(STAGES.map(item => [item.code, item.label]));
@@ -68,13 +68,13 @@ function parseBody(req) {
 function authFromRequest(req) {
   const role = req.headers['x-role'] || 'viewer';
   const userId = Number(req.headers['x-user-id'] || 0);
-  const realName = req.headers['x-user-name'] || '·Ã¿Í';
+  const realName = req.headers['x-user-name'] || 'è®¿å®¢';
   return { role, userId, realName };
 }
 
 function requireRole(res, actor, roles) {
   if (!roles.includes(actor.role)) {
-    json(res, 403, { message: 'È¨ÏŞ²»×ã' });
+    json(res, 403, { message: 'æƒé™ä¸è¶³' });
     return false;
   }
   return true;
@@ -105,9 +105,9 @@ function ensureProjectShape(project) {
   const contractDraft = { ...baseStage(), fileId: null, fileName: '', date: '', remark: '' };
   const contractStamp = { ...baseStage(), copies: 0, isStamped: false, isScanned: false, isUploaded: false };
   const contractDelivery = { ...baseStage(), trackingNo: '', receiptFileId: null, receiptFileName: '', customerConfirmed: false, customerConfirmFileId: null, customerConfirmFileName: '' };
-  const fundClaim = { ...baseStage(), screenshotFileId: null, screenshotFileName: '', bankFlowNo: '', arrivalStatus: 'Î´µ½ÕË', virtualAmount: 0 };
-  const invoice = { ...baseStage(), invoiceType: 'ÆÕÆ±', previewFileId: null, previewFileName: '', customerConfirmStatus: '´ıÈ·ÈÏ', sendStatus: 'Î´·¢ËÍ' };
-  const closure = { ...baseStage(), reportFileId: null, reportFileName: '', closureStatus: 'Î´½áÌâ' };
+  const fundClaim = { ...baseStage(), screenshotFileId: null, screenshotFileName: '', bankFlowNo: '', arrivalStatus: 'æœªåˆ°è´¦', virtualAmount: 0 };
+  const invoice = { ...baseStage(), invoiceType: 'æ™®ç¥¨', previewFileId: null, previewFileName: '', customerConfirmStatus: 'å¾…ç¡®è®¤', sendStatus: 'æœªå‘é€' };
+  const closure = { ...baseStage(), reportFileId: null, reportFileName: '', closureStatus: 'æœªç»“é¢˜' };
 
   return {
     id: project.id,
@@ -116,7 +116,7 @@ function ensureProjectShape(project) {
     projectLeader: project.projectLeader || '',
     startTime: project.startTime || '',
     currentStage: project.currentStage || 'project_info',
-    status: project.status || '½øĞĞÖĞ',
+    status: project.status || 'è¿›è¡Œä¸­',
     remark: project.remark || '',
     virtualAccountAmount: Number(project.virtualAccountAmount || 0),
     projectInfo: project.projectInfo || { submitted: false, submittedAt: '', submittedBy: null, locked: false },
@@ -208,7 +208,7 @@ function listProjects() {
 function projectSummary(project) {
   const p = normalizeProject(project);
   const currentStage = getCurrentStageCode(p);
-  const status = p.closure.submitted && p.closure.closureStatus === 'ÒÑ½áÌâ' ? 'ÒÑÍê³É' : (isOverdue(p) ? 'ÓâÆÚ' : '½øĞĞÖĞ');
+  const status = p.closure.submitted && p.closure.closureStatus === 'å·²ç»“é¢˜' ? 'å·²å®Œæˆ' : (isOverdue(p) ? 'é€¾æœŸ' : 'è¿›è¡Œä¸­');
   return {
     id: p.id,
     projectName: p.projectName,
@@ -225,15 +225,15 @@ function projectSummary(project) {
     contractDone: p.contract.draft.submitted && p.contract.stamp.submitted && p.contract.delivery.submitted,
     fundClaimDone: p.fundClaim.submitted,
     invoiceDone: p.invoice.submitted,
-    closureDone: p.closure.submitted && p.closure.closureStatus === 'ÒÑ½áÌâ'
+    closureDone: p.closure.submitted && p.closure.closureStatus === 'å·²ç»“é¢˜'
   };
 }
 
 function progressText(project) {
   const p = normalizeProject(project);
   const current = getCurrentStageCode(p);
-  if (p.closure.submitted && p.closure.closureStatus === 'ÒÑ½áÌâ') return 'ÏîÄ¿ÒÑ½áÌâ';
-  return `µ±Ç°½×¶Î£º${STAGE_LABELS[current] || current}`;
+  if (p.closure.submitted && p.closure.closureStatus === 'å·²ç»“é¢˜') return 'é¡¹ç›®å·²ç»“é¢˜';
+  return `å½“å‰é˜¶æ®µï¼š${STAGE_LABELS[current] || current}`;
 }
 
 function getCurrentStageCode(project) {
@@ -245,12 +245,12 @@ function getCurrentStageCode(project) {
   if (!p.fundClaim.submitted) return 'fund_claim';
   if (!p.invoice.submitted) return 'invoice';
   if (!p.closure.submitted) return 'closure';
-  return p.closure.closureStatus === 'ÒÑ½áÌâ' ? 'completed' : 'closure';
+  return p.closure.closureStatus === 'å·²ç»“é¢˜' ? 'completed' : 'closure';
 }
 
 function isOverdue(project) {
   const p = normalizeProject(project);
-  if (p.closure.submitted && p.closure.closureStatus === 'ÒÑ½áÌâ') return false;
+  if (p.closure.submitted && p.closure.closureStatus === 'å·²ç»“é¢˜') return false;
   return daysBetween(p.startTime || p.createdAt) > 120;
 }
 
@@ -329,10 +329,10 @@ function submitStage(project, stageCode, actor) {
 
   project.updatedAt = now();
   project.currentStage = getCurrentStageCode(p);
-  project.status = isOverdue(p) ? 'ÓâÆÚ' : (p.closure.submitted && p.closure.closureStatus === 'ÒÑ½áÌâ' ? 'ÒÑÍê³É' : '½øĞĞÖĞ');
+  project.status = isOverdue(p) ? 'é€¾æœŸ' : (p.closure.submitted && p.closure.closureStatus === 'å·²ç»“é¢˜' ? 'å·²å®Œæˆ' : 'è¿›è¡Œä¸­');
   Object.assign(project, p);
   persist();
-  logAction(project.id, stageCode, 'submit', actor, `Ìá½» ${STAGE_LABELS[stageCode] || stageCode}`);
+  logAction(project.id, stageCode, 'submit', actor, `æäº¤ ${STAGE_LABELS[stageCode] || stageCode}`);
 }
 
 function resetStage(project, stageCode) {
@@ -353,7 +353,7 @@ function resetStage(project, stageCode) {
   stage.locked = false;
   project.updatedAt = now();
   project.currentStage = getCurrentStageCode(p);
-  project.status = isOverdue(p) ? 'ÓâÆÚ' : '½øĞĞÖĞ';
+  project.status = isOverdue(p) ? 'é€¾æœŸ' : 'è¿›è¡Œä¸­';
   Object.assign(project, p);
   persist();
   return true;
@@ -367,7 +367,7 @@ function createProject(body, actor) {
     projectLeader: body.project_leader || '',
     startTime: body.start_time || now().slice(0, 10),
     currentStage: 'project_info',
-    status: '½øĞĞÖĞ',
+    status: 'è¿›è¡Œä¸­',
     remark: body.remark || '',
     virtualAccountAmount: Number(body.virtual_account_amount || 0),
     projectInfo: { submitted: false, submittedAt: '', submittedBy: null, locked: false },
@@ -381,7 +381,7 @@ function createProject(body, actor) {
   });
   store.projects.unshift(project);
   persist();
-  logAction(project.id, 'project_info', 'create', actor, `´´½¨ÏîÄ¿ ${project.projectName}`);
+  logAction(project.id, 'project_info', 'create', actor, `åˆ›å»ºé¡¹ç›® ${project.projectName}`);
   return project;
 }
 
@@ -396,7 +396,7 @@ function updateProjectBaseInfo(project, body, actor) {
   p.updatedAt = now();
   Object.assign(project, p);
   persist();
-  logAction(project.id, 'project_info', 'edit', actor, '¸üĞÂÏîÄ¿»ù´¡ĞÅÏ¢');
+  logAction(project.id, 'project_info', 'edit', actor, 'æ›´æ–°é¡¹ç›®åŸºç¡€ä¿¡æ¯');
 }
 
 function saveStageFields(project, stageCode, body, actor) {
@@ -472,7 +472,7 @@ function saveStageFields(project, stageCode, body, actor) {
   p.updatedAt = now();
   Object.assign(project, p);
   persist();
-  logAction(project.id, stageCode, 'edit', actor, `¸üĞÂ ${STAGE_LABELS[stageCode] || stageCode}`);
+  logAction(project.id, stageCode, 'edit', actor, `æ›´æ–° ${STAGE_LABELS[stageCode] || stageCode}`);
 }
 
 function saveFile({ projectId, moduleCode, fileName, contentType, contentBase64, actor }) {
@@ -496,7 +496,7 @@ function saveFile({ projectId, moduleCode, fileName, contentType, contentBase64,
   };
   store.files.unshift(record);
   persist();
-  logAction(Number(projectId), moduleCode, 'upload', actor, `ÉÏ´«ÎÄ¼ş ${fileName}`);
+  logAction(Number(projectId), moduleCode, 'upload', actor, `ä¸Šä¼ æ–‡ä»¶ ${fileName}`);
   return record;
 }
 
@@ -563,9 +563,9 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === '/api/setup/admin' && req.method === 'POST') {
-      if (store.users.length > 0) return json(res, 400, { message: 'ÏµÍ³ÒÑ³õÊ¼»¯£¬²»ÄÜÖØ¸´´´½¨Ê×¸ö¹ÜÀíÔ±' });
+      if (store.users.length > 0) return json(res, 400, { message: 'ç³»ç»Ÿå·²åˆå§‹åŒ–ï¼Œä¸èƒ½é‡å¤åˆ›å»ºé¦–ä¸ªç®¡ç†å‘˜' });
       const body = await parseBody(req);
-      if (!body.username || !body.real_name) return json(res, 400, { message: 'ÓÃ»§ÃûºÍĞÕÃû²»ÄÜÎª¿Õ' });
+      if (!body.username || !body.real_name) return json(res, 400, { message: 'ç”¨æˆ·åå’Œå§“åä¸èƒ½ä¸ºç©º' });
       const user = {
         id: store.meta.nextUserId++,
         username: String(body.username).trim(),
@@ -577,7 +577,7 @@ const server = http.createServer(async (req, res) => {
       };
       store.users.push(user);
       persist();
-      return json(res, 201, { message: 'Ê×¸ö¹ÜÀíÔ±´´½¨³É¹¦', user });
+      return json(res, 201, { message: 'é¦–ä¸ªç®¡ç†å‘˜åˆ›å»ºæˆåŠŸ', user });
     }
 
     if (pathname === '/api/users' && req.method === 'GET') {
@@ -588,8 +588,8 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/users' && req.method === 'POST') {
       if (!requireRole(res, actor, ['admin'])) return;
       const body = await parseBody(req);
-      if (!body.username || !body.real_name) return json(res, 400, { message: 'ÕËºÅºÍĞÕÃû²»ÄÜÎª¿Õ' });
-      if (store.users.some(user => user.username === String(body.username).trim())) return json(res, 400, { message: 'ÕËºÅÒÑ´æÔÚ' });
+      if (!body.username || !body.real_name) return json(res, 400, { message: 'è´¦å·å’Œå§“åä¸èƒ½ä¸ºç©º' });
+      if (store.users.some(user => user.username === String(body.username).trim())) return json(res, 400, { message: 'è´¦å·å·²å­˜åœ¨' });
       const user = {
         id: store.meta.nextUserId++,
         username: String(body.username).trim(),
@@ -625,11 +625,11 @@ const server = http.createServer(async (req, res) => {
       if (!user) return serveNotFound(res);
       const adminCount = store.users.filter(item => item.role === 'admin' && Number(item.status) === 1).length;
       if (user.role === 'admin' && adminCount <= 1) {
-        return json(res, 400, { message: 'ÖÁÉÙ±£ÁôÒ»¸öÆôÓÃÖĞµÄ¹ÜÀíÔ±ÕËºÅ' });
+        return json(res, 400, { message: 'è‡³å°‘ä¿ç•™ä¸€ä¸ªå¯ç”¨ä¸­çš„ç®¡ç†å‘˜è´¦å·' });
       }
       store.users = store.users.filter(item => item.id !== user.id);
       persist();
-      return json(res, 200, { message: 'ÓÃ»§ÒÑÉ¾³ı' });
+      return json(res, 200, { message: 'ç”¨æˆ·å·²åˆ é™¤' });
     }
 
     if (pathname === '/api/projects' && req.method === 'GET') {
@@ -664,14 +664,14 @@ const server = http.createServer(async (req, res) => {
       store.logs = store.logs.filter(log => log.projectId !== projectId);
       store.projects = store.projects.filter(item => item.id !== projectId);
       persist();
-      return json(res, 200, { message: 'ÏîÄ¿ÒÑÉ¾³ı' });
+      return json(res, 200, { message: 'é¡¹ç›®å·²åˆ é™¤' });
     }
 
     const baseInfoMatch = pathname.match(/^\/api\/projects\/(\d+)\/base-info$/);
     if (baseInfoMatch && req.method === 'PUT') {
       const project = getProjectById(baseInfoMatch[1]);
       if (!project) return serveNotFound(res);
-      if (!canEdit(project, 'project_info', actor)) return json(res, 403, { message: 'µ±Ç°ÎŞÈ¨±à¼­»ù´¡ĞÅÏ¢' });
+      if (!canEdit(project, 'project_info', actor)) return json(res, 403, { message: 'å½“å‰æ— æƒç¼–è¾‘åŸºç¡€ä¿¡æ¯' });
       const body = await parseBody(req);
       updateProjectBaseInfo(project, body, actor);
       return json(res, 200, { detail: getProjectDetail(project.id) });
@@ -681,7 +681,7 @@ const server = http.createServer(async (req, res) => {
     if (submitBaseInfoMatch && req.method === 'POST') {
       const project = getProjectById(submitBaseInfoMatch[1]);
       if (!project) return serveNotFound(res);
-      if (!canEdit(project, 'project_info', actor)) return json(res, 403, { message: 'µ±Ç°ÎŞÈ¨Ìá½»»ù´¡ĞÅÏ¢' });
+      if (!canEdit(project, 'project_info', actor)) return json(res, 403, { message: 'å½“å‰æ— æƒæäº¤åŸºç¡€ä¿¡æ¯' });
       submitStage(project, 'project_info', actor);
       return json(res, 200, { detail: getProjectDetail(project.id) });
     }
@@ -691,9 +691,9 @@ const server = http.createServer(async (req, res) => {
       const project = getProjectById(moduleMatch[1]);
       if (!project) return serveNotFound(res);
       const stageCode = moduleMatch[2];
-      if (!STAGE_ORDER.includes(stageCode)) return json(res, 400, { message: 'Î´Öª½×¶Î' });
-      if (!validateNextOrder(project, stageCode)) return json(res, 400, { message: 'Ç°ÖÃ½×¶ÎÎ´Íê³É£¬²»ÄÜ±à¼­µ±Ç°Ä£¿é' });
-      if (!canEdit(project, stageCode, actor)) return json(res, 403, { message: 'µ±Ç°ÎŞÈ¨±à¼­¸ÃÄ£¿é' });
+      if (!STAGE_ORDER.includes(stageCode)) return json(res, 400, { message: 'æœªçŸ¥é˜¶æ®µ' });
+      if (!validateNextOrder(project, stageCode)) return json(res, 400, { message: 'å‰ç½®é˜¶æ®µæœªå®Œæˆï¼Œä¸èƒ½ç¼–è¾‘å½“å‰æ¨¡å—' });
+      if (!canEdit(project, stageCode, actor)) return json(res, 403, { message: 'å½“å‰æ— æƒç¼–è¾‘è¯¥æ¨¡å—' });
       const body = await parseBody(req);
       saveStageFields(project, stageCode, body, actor);
       return json(res, 200, { detail: getProjectDetail(project.id) });
@@ -704,9 +704,9 @@ const server = http.createServer(async (req, res) => {
       const project = getProjectById(submitModuleMatch[1]);
       if (!project) return serveNotFound(res);
       const stageCode = submitModuleMatch[2];
-      if (!STAGE_ORDER.includes(stageCode)) return json(res, 400, { message: 'Î´Öª½×¶Î' });
-      if (!validateNextOrder(project, stageCode)) return json(res, 400, { message: 'Ç°ÖÃ½×¶ÎÎ´Íê³É£¬²»ÄÜÌá½»µ±Ç°Ä£¿é' });
-      if (!canEdit(project, stageCode, actor)) return json(res, 403, { message: 'µ±Ç°ÎŞÈ¨Ìá½»¸ÃÄ£¿é' });
+      if (!STAGE_ORDER.includes(stageCode)) return json(res, 400, { message: 'æœªçŸ¥é˜¶æ®µ' });
+      if (!validateNextOrder(project, stageCode)) return json(res, 400, { message: 'å‰ç½®é˜¶æ®µæœªå®Œæˆï¼Œä¸èƒ½æäº¤å½“å‰æ¨¡å—' });
+      if (!canEdit(project, stageCode, actor)) return json(res, 403, { message: 'å½“å‰æ— æƒæäº¤è¯¥æ¨¡å—' });
       submitStage(project, stageCode, actor);
       return json(res, 200, { detail: getProjectDetail(project.id) });
     }
@@ -717,9 +717,9 @@ const server = http.createServer(async (req, res) => {
       const project = getProjectById(resetMatch[1]);
       if (!project) return serveNotFound(res);
       const body = await parseBody(req);
-      if (!STAGE_ORDER.includes(body.stage_code)) return json(res, 400, { message: 'Î´Öª½×¶Î' });
+      if (!STAGE_ORDER.includes(body.stage_code)) return json(res, 400, { message: 'æœªçŸ¥é˜¶æ®µ' });
       resetStage(project, body.stage_code);
-      logAction(project.id, body.stage_code, 'reset', actor, `ÖØÖÃ ${STAGE_LABELS[body.stage_code] || body.stage_code}`);
+      logAction(project.id, body.stage_code, 'reset', actor, `é‡ç½® ${STAGE_LABELS[body.stage_code] || body.stage_code}`);
       return json(res, 200, { detail: getProjectDetail(project.id) });
     }
 
@@ -754,12 +754,12 @@ const server = http.createServer(async (req, res) => {
     return serveStatic(req, res, pathname);
   } catch (error) {
     console.error(error);
-    return json(res, 500, { message: error.message || '·şÎñÆ÷Òì³£' });
+    return json(res, 500, { message: error.message || 'æœåŠ¡å™¨å¼‚å¸¸' });
   }
 });
 
 server.listen(PORT, () => {
-  console.log(`²úÑ§ÑĞÏîÄ¿¹ÜÀíÏµÍ³ÒÑÆô¶¯: http://localhost:${PORT}`);
+  console.log(`äº§å­¦ç ”é¡¹ç›®ç®¡ç†ç³»ç»Ÿå·²å¯åŠ¨: http://localhost:${PORT}`);
 });
 
 
